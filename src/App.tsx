@@ -1,32 +1,87 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import reactLogo from './assets/react.svg'
 import './App.css'
 
+let ID_COUNT = 0;
+interface Quote {
+  id: number;
+  content: string;
+  author: string;
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [boxClass, setBoxClass] = useState("box");
+  const [searched, setSerached] = useState(false);
+  const [random, setRandom] = useState("");
+  const [author, setAuthor] = useState("");
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+
+  async function searchQuotes(query : String) {
+    const result = await fetch("https://usu-quotes-mimic.vercel.app/api/search?query=" + query);
+    let json = await result.json();
+    let quotes = json["results"];
+    setQuotes([]);
+    for (const quote of quotes) {
+      const newQuote : Quote = {
+        id: ID_COUNT++,
+        content: quote["content"],
+        author: quote["author"]
+      };
+      setQuotes([...quotes, newQuote]);
+    }
+    setBoxClass("notBox");
+  }
+
+  function search(event : React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setRandom("");
+    setAuthor("");
+    searchQuotes(event.currentTarget.query.value);
+  }
+
+  async function randomQuote() {
+    const result = await fetch("https://usu-quotes-mimic.vercel.app/api/random");
+    let json = await result.json();
+    setRandom(json["content"]);
+    setAuthor(" - " + json["author"]);
+  }
+
+  useEffect(() => {
+    randomQuote();
+  }, []);
 
   return (
-    <div className="App">
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div id={boxClass}>
+      <div className="App">
+        <h1>Quote Search</h1>
+        <div id="input-container">
+          <form id="form" onSubmit={search}>
+            <input id="search" type="text" name="query"/>
+          </form>
+        </div>
+        <div>
+          <p>
+            {random}
+          </p>
+          <p id="author">
+            {author}
+          </p>
+        </div>
+        <div id="quotes-container">
+          {
+            quotes.map((quote) => (
+              <div className="quote" key={quote.id}>
+                <p>
+                  {quote.content}
+                </p>
+                <p id="author">
+                  {" - " + quote.author}
+                </p>
+              </div>
+            ))
+          }
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </div>
   )
 }
